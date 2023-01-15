@@ -1,0 +1,153 @@
+---
+title: 'HW 1: Treatment of Individuals with Cystic Fibrosis'
+author: "Mairead Dillon"
+date: '2023-01-15'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Set working directory
+setwd("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW1")
+
+# Load libraries
+library(tidyverse)
+library(readxl)
+library(ggpubr)
+library(pander)
+library(car)
+library(table1)
+
+# Import data
+fev1 <- read_xls("fev1.xls")
+```
+    
+```{r}
+## Variable manipulation
+# Add change variable
+fev1 <- fev1 %>% mutate(CHANGE = FEV12 - FEV11)
+
+# Make treatment variable a factor
+fev1$TREAT <- factor(fev1$TREAT,
+                        levels=c("1", "2"),
+                        labels=c("Placebo", "Active Treatment"))
+
+# Label variables
+label(fev1$FEV11) <- "Initial FEV1 Score"
+label(fev1$FEV12) <- "Follow-Up FEV1 Score"
+label(fev1$CHANGE) <- "Change in FEV1 Score"
+```
+    
+```{r}
+## Make density plots
+# Baseline
+ggdensity(fev1$FEV11) +
+  ggtitle("Distribution of Baseline FEV1 Score") +
+  xlab("Score") +
+  ylab("Density")
+
+# Follow-up
+ggdensity(fev1$FEV12) +
+  ggtitle("Distribution of Follow-up FEV1 Score") +
+  xlab("Score") +
+  ylab("Density")
+
+# Change
+ggdensity(fev1$CHANGE) +
+  ggtitle("Distribution of Change in FEV1 Score") +
+  xlab("Score") +
+  ylab("Density")
+```
+   
+```{r}
+# Summary statistics
+summary(fev1)
+
+# Variance of change for both treatment groups
+(sd(fev1$CHANGE[fev1$TREAT=="1"]))^2
+(sd(fev1$CHANGE[fev1$TREAT=="2"]))^2
+
+# Variance of FEV12 for both treatment groups
+(sd(fev1$FEV12[fev1$TREAT=="1"]))^2
+(sd(fev1$FEV12[fev1$TREAT=="2"]))^2
+
+# Make table 1
+table1(~ FEV11 + FEV12 + CHANGE | TREAT, data=fev1)
+```
+    
+```{r}
+## Analysis
+# Variance test
+var.test(fev1$CHANGE[fev1$TREAT==1],
+         fev1$CHANGE[fev1$TREAT==2])
+
+# Welch's t-test
+t.test(fev1$CHANGE[fev1$TREAT==1],
+       fev1$CHANGE[fev1$TREAT==2],
+       alternative="two.sided",
+       var.equal=FALSE,
+       conf.level=0.95)
+
+# ANOVA 1
+mod1 <- aov(CHANGE ~ TREAT, data=fev1)
+summary(mod1)
+
+# Regression 1
+reg1 <- lm(CHANGE ~ TREAT, data=fev1)
+summary(reg1)
+
+# ANOVA 2
+mod2 <- aov(CHANGE ~ TREAT + FEV11, data=fev1)
+summary(mod2)
+
+# Regression 2
+reg2 <- lm(CHANGE ~ TREAT + FEV11, data=fev1)
+summary(reg2)
+
+# ANCOVA for mod 2
+Anova(mod2, type="III")
+
+# Check ANCOVA assumptions
+# Check for normality
+shapiro.test(resid(aov(CHANGE ~ TREAT + FEV11, data=fev1)))
+
+# Check for homogeneity of variance
+bartlett.test(CHANGE ~ TREAT, data=fev1)
+
+# Check for homogeneity of regression slopes (covariate coefficients)
+Anova(aov(CHANGE ~ TREAT*FEV11, data=fev1))
+
+# Check for linearity
+ggplot(fev1, aes(FEV11, CHANGE, color=TREAT)) +
+  geom_point() +
+  geom_smooth(method="lm", aes(fill=TREAT), alpha=0.1)
+```
+    
+```{r}
+## ANCOVA
+# Check for normality
+shapiro.test(resid(aov(FEV12 ~ TREAT + FEV11, data=fev1)))
+
+# Check for homogeneity of variance
+bartlett.test(FEV12 ~ TREAT, data=fev1)
+
+# Check for homogeneity of regression slopes (covariate coefficients)
+Anova(aov(FEV12 ~ TREAT*FEV11, data=fev1))
+
+# Check for linearity
+ggplot(fev1, aes(FEV11, FEV12, color=TREAT)) +
+  geom_point() +
+  geom_smooth(method="lm", aes(fill=TREAT), alpha=0.1)
+
+# ANOVA
+mod3 <- aov(FEV12 ~ TREAT + FEV11, data=fev1)
+summary(mod3)
+
+# ANCOVA
+Anova(mod3, type="III")
+
+# Regression
+mod4 <- lm(FEV12 ~ TREAT + FEV11, data=fev1)
+summary(mod4)
+```
+

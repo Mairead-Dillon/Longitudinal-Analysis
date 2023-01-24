@@ -18,31 +18,34 @@ gcsf_long <- read_xlsx("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudina
 ```
      
 ```{r}
-# Reformat data
-gcsf_long$id <- as.factor(gcsf_long$id)
-gcsf_long$age <- as.factor(gcsf_long$age)
-gcsf_long$gcsf <- as.factor(gcsf_long$gcsf)
-```
-     
-     
-```{r}
 # Create mixed effects model
 mod1 <- lmer(cfu ~ age + gcsf + days + (1|id), data=gcsf_long)
 summary(mod1)
 
-mod2 <- lmer(cfu ~ age + gcsf + age:gcsf + (days|id), data=gcsf_long)
+mod2 <- lmer(cfu ~ as.factor(gcsf) + days + (1 | id) + (0 + days | id), data=gcsf_long)
 ```
      
 ```{r}
+# Resave data
+gcsf_long1 <- gcsf_long
+
+# Reformat data
+gcsf_long1$id <- as.factor(gcsf_long$id)
+gcsf_long1$age <- as.factor(gcsf_long$age)
+gcsf_long1$gcsf <- as.factor(gcsf_long$gcsf)
+```
+
+    
+```{r}
 # Make spaghetti plot
-ggplot(data=gcsf_long, aes(x=days, y=cfu, group=id, color=age)) +
+ggplot(data=gcsf_long1, aes(x=days, y=cfu, group=id, color=gcsf)) +
   geom_point() + geom_line() +
   xlab("Days") +
   ylab("Colony Forming Units") +
   ggtitle("Change in Colony Forming Units Over Time Per Person") +
-  labs(color = "Age") +
-  theme(plot.title = element_text(hjust=0.5)) +
-  theme_bw()
+  labs(color = "Dose") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust=0.5))
 ```
 
      

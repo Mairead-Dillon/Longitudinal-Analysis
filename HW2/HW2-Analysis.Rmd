@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 library(lme4)
+library(car)
 
 # Import data
 gcsf_wide <- read_xlsx("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW2/gcsf.xlsx")
@@ -22,30 +23,64 @@ gcsf_long <- read_xlsx("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudina
 mod1 <- lmer(cfu ~ age + gcsf + days + (1|id), data=gcsf_long)
 summary(mod1)
 
-mod2 <- lmer(cfu ~ as.factor(gcsf) + days + (1 | id) + (0 + days | id), data=gcsf_long)
+mod2 <- lmer(cfu ~ as.factor(gcsf) + age + days + (1 + days | id), data=gcsf_long)
+summary(mod2)
 ```
      
 ```{r}
+# QQ-Plots
+# Day 0
+qqnorm(gcsf_wide$cfu0)
+qqline(gcsf_wide$cfu0)
+
+# Day 1
+qqnorm(gcsf_wide$cfu1)
+qqline(gcsf_wide$cfu1)
+
+# Day 5
+qqnorm(gcsf_wide$cfu5)
+qqline(gcsf_wide$cfu5)
+```
+     
+     
+```{r}
+# Remove middle time point
+gcsf_long1 <- gcsf_long %>% filter(days!=1)
+
+# ANCOVA Model
+mod1 <- aov(cfu ~ as.factor(days) + as.factor(gcsf) + age, data=gcsf_long)
+summary(mod1)
+Anova(mod1, type="III")
+
+mod2 <- aov(cfu5 ~ as.factor(gcsf) + age + cfu0,
+            data=gcsf_wide)
+summary(mod2)
+Anova(mod2, type="III")
+```
+     
+     
+```{r}
 # Resave data
-gcsf_long1 <- gcsf_long
+gcsf_long2 <- gcsf_long
 
 # Reformat data
-gcsf_long1$id <- as.factor(gcsf_long$id)
-gcsf_long1$age <- as.factor(gcsf_long$age)
-gcsf_long1$gcsf <- as.factor(gcsf_long$gcsf)
+gcsf_long2$id <- as.factor(gcsf_long2$id)
+gcsf_long2$age <- as.factor(gcsf_long2$age)
+gcsf_long2$gcsf <- as.factor(gcsf_long2$gcsf)
 ```
 
     
 ```{r}
 # Make spaghetti plot
-ggplot(data=gcsf_long1, aes(x=days, y=cfu, group=id, color=gcsf)) +
+ggplot(data=gcsf_long2, aes(x=days, y=cfu, group=id, color=gcsf)) +
   geom_point() + geom_line() +
   xlab("Days") +
   ylab("Colony Forming Units") +
-  ggtitle("Change in Colony Forming Units Over Time Per Person") +
+  ggtitle("Change in Colony Forming Units Over Time") +
   labs(color = "Dose") +
   theme_bw() +
   theme(plot.title = element_text(hjust=0.5))
+#ggsave("spaghetti_plot.jpg")
 ```
 
      

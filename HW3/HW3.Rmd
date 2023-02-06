@@ -1,0 +1,85 @@
+---
+title: "Homework 3"
+author: "Mairead Dillon"
+date: '2023-02-04'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+library(readxl)
+library(tidyverse)
+
+# Load data
+resp <- read_xlsx("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW3/resp.xlsx")
+```
+     
+# (a) Which variables are between-cluster variables, and which are within-cluster variables?
+The between-cluster variables are id, sex, and baseage. The within-cluster variables are resp, age, xp, time, and season.   
+    
+# (b) Fit a logistic regression model with resp as the outcome variable and predictors age, xp and sex. Interpret the age effect.   
+For every one month increase in age, there is a 2.5% decrease in the odds that the patient has a respiratory infection when holding all other variables constant.  
+```{r}
+# Logistic regression
+mod1 <- glm(resp ~ age + xp + sex, data=resp, family="binomial")
+summary(mod1)
+
+# Find odds
+exp(mod1$coefficients)
+```
+     
+# (c) Expand the previous model to include between-cluster and within-cluster age effects. Please specify your model and indicate how you constructed your predictors for age. You do not need to fit the new model in part (c).   
+$logit(Y_{ij}) = {\beta}_{0} + {\beta}_1*{\bar{age}} + {\beta}_{2}*(age-\bar{age}) + {\beta}_{3}*xp + {\beta}_{4}*sex + {\epsilon}_{ij}$
+      
+# (d) Now fit a logistic regression model with baseline age, change in age from baseline, xp and sex. Give careful interpretations of the two age effects. Contrast them to those in part (b).  
+For every one month increase in baseline age, the odds of the patient having a respiratory infection decrease by 2.8% when holding all other variables constant. For every one month increase in change in age from baseline, the odds of the patient having a respiratory infection increase by 0.83%. An one month increase in change in baseline age in this model causes a greater decrease in the odds of a patient having a respiratory infection than the same change in the age variable in the previous model. An one month increase in change in age from baseline in this model causes an increase in the odds of a patient having a respiratory infection, which contrasts to the decrease caused by an one month increase in age in the previous model.  
+```{r}
+# Create change in age from baseline variable
+resp <- resp %>%
+    mutate(change_age = age - baseage)
+
+# Logistic regression
+mod2 <- glm(resp ~ baseage + change_age + xp + sex, data=resp, family="binomial")
+summary(mod2)
+
+# Find odds
+exp(mod2$coefficients)
+```
+     
+# (e) Fit the models in (b) and (d), but this time including season effects (treat it as a categorical predictor). Give explanations for any large changes in the age effects you observe when season is added to the models compared to your previous results. Use some descriptive statistics or graphics to support your explanations.   
+When season is added to the model in (b), the change in odds of a patient having respiratory infection is about the same for an one month increase in age when all other variables are held constant. When season is added to the model in (c), the change in odds of a patient having a respiratory infection is about the same for an one month increase in baseline age when all other variables are held constant, but the odds of a patient having a respiratory infection increase by 3.1% when there is an one month increase in change in age from baseline and all other variables are held constant.   
+```{r}
+# Refit model from part b
+mod3 <- glm(resp ~ age + xp + sex + as.factor(season), data=resp, family="binomial")
+summary(mod3)
+
+# Find odds
+exp(mod3$coefficients)
+
+# Refit model from part c
+mod4 <- glm(resp ~ baseage + change_age + xp + sex + as.factor(season), data=resp, family="binomial")
+summary(mod4)
+
+# Find odds
+exp(mod4$coefficients)
+
+# Calculate mean age for each person
+mean_age <- resp %>%
+    group_by(id) %>%
+    summarise(mean_age = mean(age))
+
+# Calculate mean change in age for each person
+mean_change_age <- resp %>%
+    group_by(id) %>% 
+    summarise(mean_change_age = mean(change_age))
+
+# Merge different datasets
+means <- merge(mean_age, mean_change_age, by="id")
+means <- merge(resp[,c(1,7)], means, by="id")
+
+# Plot
+ggplot(aes(x=mean_age, y=mean_change_age), data=means) +
+    geom_point()
+```
+

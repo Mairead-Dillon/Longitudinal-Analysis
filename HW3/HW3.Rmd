@@ -79,7 +79,7 @@ means <- merge(mean_age, mean_change_age, by="id")
 means <- merge(resp[,c(1,7)], means, by="id")
 
 # Plot
-ggplot(aes(x=mean_age, y=mean_change_age), data=means) +
-    geom_point()
+ggplot(aes(x=baseage, y=change_age), data=resp) +
+    geom_point() + facet_wrap(~ season) + theme_classic()
 ```
 

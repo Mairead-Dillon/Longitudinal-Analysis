@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load libraries
 library(readxl)
 library(tidyverse)
+library(expss)
 
 # Load data
 resp <- read_xlsx("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW3/resp.xlsx")
@@ -48,7 +49,7 @@ exp(mod2$coefficients)
 ```
      
 # (e) Fit the models in (b) and (d), but this time including season effects (treat it as a categorical predictor). Give explanations for any large changes in the age effects you observe when season is added to the models compared to your previous results. Use some descriptive statistics or graphics to support your explanations.   
-When season is added to the model in (b), the change in odds of a patient having respiratory infection is about the same for an one month increase in age when all other variables are held constant. When season is added to the model in (c), the change in odds of a patient having a respiratory infection is about the same for an one month increase in baseline age when all other variables are held constant, but the odds of a patient having a respiratory infection increase by 3.1% when there is an one month increase in change in age from baseline and all other variables are held constant.   
+When season is added to the model in (b), the change in odds of a patient having respiratory infection is about the same for an one month increase in age when all other variables are held constant. When season is added to the model in (c), the change in odds of a patient having a respiratory infection is about the same for an one month increase in baseline age when all other variables are held constant, but the odds of a patient having a respiratory infection increase by 3.1% when there is an one month increase in change in age from baseline and all other variables are held constant.
 ```{r}
 # Refit model from part b
 mod3 <- glm(resp ~ age + xp + sex + as.factor(season), data=resp, family="binomial")
@@ -64,22 +65,20 @@ summary(mod4)
 # Find odds
 exp(mod4$coefficients)
 
-# Calculate mean age for each person
-mean_age <- resp %>%
-    group_by(id) %>%
-    summarise(mean_age = mean(age))
+# Make variables factors
+resp$change_age <- as.factor(resp$change_age)
+resp$season <- factor(resp$season,
+                      levels=c(1, 2, 3, 4),
+                      labels=c("Season 1",
+                               "Season 2",
+                               "Season 3",
+                               "Season 4"))
 
-# Calculate mean change in age for each person
-mean_change_age <- resp %>%
-    group_by(id) %>% 
-    summarise(mean_change_age = mean(change_age))
+# Label variables
+label(resp$change_age) <- "Change in Age from Baseline (Months)"
+label(resp$season) <- "Season"
 
-# Merge different datasets
-means <- merge(mean_age, mean_change_age, by="id")
-means <- merge(resp[,c(1,7)], means, by="id")
-
-# Plot
-ggplot(aes(x=baseage, y=change_age), data=resp) +
-    geom_point() + facet_wrap(~ season) + theme_classic()
+# Create table
+counts_table <- table1(~ change_age | season, data=resp)
 ```
 

@@ -1,0 +1,24 @@
+---
+title: "Longitudinal Analysis HW 4"
+author: "Mairead Dillon"
+date: '2023-02-15'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+library(tidyverse)
+library(geepack)
+
+# Import data
+rao <- read_csv("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW4/rao.csv")
+```
+     
+# Question 1     
+## a) Estimate the rate of bone growth per year using a marginal model. Give a 95% confidence interval for the rate. Do three separate analyses, with (1) independence, (2) exchangeable correlation, and (3) a different working correlation of your choice (justify your choice).    
+```{r}
+# Independence model
+geeglm(ht~age, data=rao, id=boy)
+```
+

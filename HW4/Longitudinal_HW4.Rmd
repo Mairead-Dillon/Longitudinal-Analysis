@@ -2,23 +2,163 @@
 title: "Longitudinal Analysis HW 4"
 author: "Mairead Dillon"
 date: '2023-02-15'
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(include = FALSE)
 # Load libraries
 library(tidyverse)
-library(geepack)
+library(readxl)
+library(gee)
+library(gee)
+library(lme4)
+library(sandwich)
+library(lmtest)
 
 # Import data
 rao <- read_csv("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW4/rao.csv")
+epilepsy <- read_xls("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW4/epilepsy.xls")
 ```
-     
+      
+```{r}
+# Change age variable
+rao <- rao %>%
+  mutate(age2 =
+           ifelse(age==1, 8,
+            ifelse(age==2, 8.5,
+              ifelse(age==3, 9,
+                ifelse(age==4, 9.5, NA)))))
+```
+      
 # Question 1     
 ## a) Estimate the rate of bone growth per year using a marginal model. Give a 95% confidence interval for the rate. Do three separate analyses, with (1) independence, (2) exchangeable correlation, and (3) a different working correlation of your choice (justify your choice).    
+(1) The rate of bone growth was 1.87 mm / year (95% CI: 1.36-2.38).   
+(2) The rate of bone growth was 1.87 mm / year (95% CI: 1.36-2.38).    
+(3) The plot of the residuals indicates that AR-M correlation structure should be used. The rate of bone growth was 1.9 mm / year (95% CI: 1.42-2.38).    
 ```{r}
 # Independence model
-geeglm(ht~age, data=rao, id=boy)
-```
+mod1 <- gee(ht~age2, id=boy, data=rao, corstr = "independence")
+mod1
+summary(mod1)
 
+# Confidence interval
+cc1 <- coef(summary(mod1))
+CI1 <- with(as.data.frame(cc1),
+     cbind(lwr=Estimate-1.96*0.258,
+           upr=Estimate+1.96*0.258))
+rownames(CI1) <- rownames(CI1)
+CI1
+
+# Exchangeable correlation
+mod2 <- gee(ht~age2, id=boy, data=rao, corstr = "exchangeable")
+summary(mod2)
+
+# Confidence interval
+cc2 <- coef(summary(mod2))
+CI2 <- with(as.data.frame(cc2),
+     cbind(lwr=Estimate-1.96*0.258,
+           upr=Estimate+1.96*0.258))
+rownames(CI2) <- rownames(CI2)
+CI2
+
+# Take residuals
+cor(mod1$residuals)
+
+# AR-M
+mod3 <- gee(ht~age2, id=boy, data=rao, corstr = "AR-M")
+summary(mod3)
+
+# Confidence interval
+cc3 <- coef(summary(mod3))
+CI3 <- with(as.data.frame(cc3),
+     cbind(lwr=Estimate-1.96*0.246,
+           upr=Estimate+1.96*0.246))
+rownames(CI3) <- rownames(CI3)
+CI3
+
+## B - random effects is between group variation
+## Random effects
+## C - average of all slopes
+## D - use variance estimate
+
+
+
+# 2b - 
+```
+     
+## b) [BONUS] Estimate the rate of bone growth per year using a random effects model (using a single random effect only). Give a 95% CI for the rate. Do you think this inference is valid? Explain in detail.    
+The rate of bone growth is 1.870 mm / year (95% CI: 1.52-2.22). I think this inference is valid because it gives similar results to the other models.    
+```{r}
+# Create model
+mod4 <- lmer(ht ~ age2 + (1 | boy), data = rao)
+summary(mod4)
+
+# Get confidence interval
+confint(mod4)
+```
+     
+## c) Estimate the rate of bone growth per year for each boy separately (hint: use a derived variable). Calculate the mean and standard deviation of the rates. Suggest a method for using these results to compute a 95% CI for the overall rate and compute this interval.     
+The mean is 1.87 and the standard deviation is 1.18. A one-sided t-test can be used to calculate the confidence interval for the overall rate. The 95% confidence interval is 1.32-2.42.    
+```{r}
+# Create model
+slopes <- rao %>% group_by(boy) %>% summarise(slope = coef(lm(ht ~ age2))[2])
+
+# Calculate mean
+mean(slopes$slope)
+
+# Calculate standard deviation
+sd(slopes$slope)
+
+# Confidence interval
+t.test(slopes$slope, conf.level=0.95)$conf.int
+
+# Standard error
+sd(slopes$slope) / sqrt(20)
+```
+       
+## d) Compare the results in (a), (b), and (c), and explain the similarities and differences between them.     
+The models all give very similar point estimates for the rate of bone growth per year. The GLM model, however, gives a lower standard error than the GEE and linear regression models.    
+      
+# Question 2     
+## a) Estimate and test the significance of the treatment effect on the average seizure rate after randomization. Use a Poisson regression model with adjustment for the baseline seizure rate and age. (Please use a transformation of the baseline count that seems appropriate for this model.) Do this analysis two ways: (1) using naïve variance estimates, and (2) using robust variance estimates. Explain the difference between the naïve variance and robust variance estimates in this analysis. 
+Based on the Poisson regression model, when age and baseline average number of seizures are held constant, the log of average expected number of seizures is expected to decrease by 0.153 seizures / two weeks for patients who had treatment compared to patients who were not treated. The naive standard error is 0.0956. The robust standard error is 0.1711. The naive standard error underestimates the true error, while the robust standard error provides a more accurate estimate of the true standard error.     
+```{r}
+# Find average number of seizures per two weeks after randomization
+epilepsy <- epilepsy %>%
+  group_by(id) %>%
+  mutate(avg_seizures = sum(y1 + y2 + y3 + y4)/4)
+
+# Find baseline seizures average over two weeks
+epilepsy <- epilepsy %>%
+  mutate(baseline_avg = y0 / 4)
+
+# Total seizures after treatment
+epilepsy <- epilepsy %>%
+  mutate(total_seizures = sum(y1 + y2 + y3 + y4))
+
+# Create model
+mod5 <- glm(avg_seizures ~ baseline_avg + age + as.factor(rx), data=epilepsy, family = "poisson"(link = "log"))
+summary(mod5)
+
+# Find robust variance
+coeftest(mod5, vcov = sandwich)
+```
+        
+## b) Estimate and test the significance of the treatment effect using a GEE analysis of the individual, 2-week seizure counts. Use a Poisson-like regression model with a working correlation matrix that seems appropriate for these data (justify your choice), and adjust for baseline seizure rate and age as in part (a).    
+A GEE Poisson model with an independent correlation structure was run. This method was chosen because measurements are independent across clusters but correlated within clusters. When age and baseline average number of seizures are held constant, the log of average expected number of seizures is expected to decrease by 0.153 seizures / two weeks for patients who had treatment compared to patients who were not treated. The naive standard error is 0.163, while the robust standard error is 0.171.    
+```{r}
+# Create model
+mod6 <- gee(avg_seizures ~ baseline_avg + age + as.factor(rx),
+            data=epilepsy,
+            family = "poisson",
+            corstr = "independence")
+
+# Model summary
+summary(mod6)
+```
+      
+# c) Compare the results on the treatment effect for (a) and (b). Are there substantial differences in the inference about the treatment effect? If so, give possible reasons for these differences. What method do you feel is best for performing inference about the treatment effect (please give reasons)?   
+The treatment effect is the same in (a) and (b). I feel the GEE method used in (b) is best for performing inference because it does not require that the variances or correlation structure be correctly specified.   

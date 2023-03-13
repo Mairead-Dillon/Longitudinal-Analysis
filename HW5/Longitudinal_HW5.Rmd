@@ -7,24 +7,61 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+library(tidyverse)
+library(readxl)
+library(lme4)
+library(nlme)
+library(gee)
+
+# Import data
+smoke <- read_xls("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW5/SmkRespDis.xls")
 ```
+     
+#a) Conduct an analysis of the longitudinal dataset that focuses on the relationship between the prevalence of respiratory disease and age within each of the two smoking (mother’s) groups. Examine both the mean and correlation structure. Comment on the difficulties of using the correlation coefficient as a measure of dependence between binary outcome variables. Are there restrictions on the value of the correlation coefficient related to the mean of binary outcomes?       
+```{r}
+# Create model
+mod1 <- gee(resp ~ age + as.factor(smk),
+            family = "binomial",
+            data = smoke)
+summary(mod1)
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+mod1 <- lmer(resp ~ age + (1 | smk), data = smoke)
+summary(mod1)
 ```
+     
+#b) Analyze the effect of mother’s smoking on prevalence of respiratory disease as a function of age using a marginal regression model. Is there any evidence for an interaction between smoking and age? How do you interpret this interaction? Experiment with a number of different “working” correlation matrices including, at a minimum, independence, exchangeable and autoregressive (1st order). Which if any of these seems most suitable for use with these data?
+```{r}
+# Create model with independence correlation structure
+mod2 <- gee(resp ~ agec + as.factor(smk) + AcXsm,
+            data = smoke,
+            family = "binomial",
+            corstr = "independence")
+summary(mod2)
 
-## Including Plots
+# Create model with exchangeable correlation structure
+mod3 <- gee(resp ~ agec + as.factor(smk) + AcXsm,
+            data = smoke,
+            family = "binomial",
+            corstr = "exchangeable")
+summary(mod3)
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+# Create model with autoregressive correlation structure
+mod4 <- gee(resp ~ agec + as.factor(smk) + AcXsm,
+            data = smoke,
+            family = "binomial",
+            corstr = "AR-M")
+summary(mod4)
 ```
+     
+#c) Estimate a conditional model for the probability of infection. Explicitly state your model and modeling assumptions. Interpret the estimated coefficient for mothers’ smoking status.      
+$Y_{ij} = {\mu}_{age} + {\mu}_{smk} + b_{i} + {\epsilon}_{ij}$     
+We assume independence of ${\epsilon}_{ij}$ and $b_{i}$.
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+# Create model
+mod5 <- lmer(resp ~ age + as.factor(smk) + (1 | id), data = smoke)
+summary(mod5)
+```
+      
+#d) Compare the estimated coefficients for mothers’ smoking status from the fitted models in (b) and (c). Comment upon the magnitude of the estimates and potential problems in the their interpretations.

@@ -2,11 +2,13 @@
 title: "Longitudinal Analysis Homework 5"
 author: "Mairead Dillon"
 date: '2023-03-13'
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(include = FALSE)
 # Load libraries
 library(tidyverse)
 library(readxl)
@@ -21,11 +23,6 @@ library(Hmisc)
 smoke <- read_xls("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW5/SmkRespDis.xls")
 ```
      
-#a) Conduct an analysis of the longitudinal dataset that focuses on the relationship between the prevalence of respiratory disease and age within each of the two smoking (mother’s) groups. Examine both the mean and correlation structure. Comment on the difficulties of using the correlation coefficient as a measure of dependence between binary outcome variables. Are there restrictions on the value of the correlation coefficient related to the mean of binary outcomes?       
-The two tables below show the prevalence and standard deviation of respiratory disease by age in children whose mothers are non-smokers and children whose mothers are smokers.   
-`r smoke0_table`    
-`r smoke1_table`      
-The correlation between respiratory disease and mother's smoking status is 0.0476. The correlation coefficient between binary variables does not live in the whole range for Pearson's correlation because it is constrained by the means of the variables.   
 ```{r}
 # Separate the smoking groups into two datasets
 smoke0 <- smoke %>% filter(smk==0)
@@ -33,31 +30,49 @@ smoke1 <- smoke %>% filter(smk==1)
 
 # Find prevalence and standard deviation by age group for smk=0
 smoke0_means <- smoke0 %>% group_by(age) %>% summarise(Mean = mean(resp))
-smoke0_sd <- smoke0 %>% group_by(age) %>% summarise(SD = sd(resp))
-smoke0_means_SD <- merge(smoke0_means, smoke0_sd, by = "age")
-smoke0_means_SD <- as.data.frame(smoke0_means_SD)
-smoke0_means_SD <- smoke0_means_SD %>% rename(Age = age)
-smoke0_table <- smoke0_means_SD %>% kable(caption = "Mother = Non-Smoker")
+smoke0_se <- smoke0 %>% group_by(age) %>% summarise(SE = sd(resp) / sqrt(n()))
+smoke0_means_SE <- merge(smoke0_means, smoke0_se, by = "age")
+smoke0_means_SE <- as.data.frame(smoke0_means_SE)
+smoke0_means_SE <- smoke0_means_SE %>% rename(Age = age)
+smoke0_table <- smoke0_means_SE %>% kable(caption = "Mother = Non-Smoker")
 smoke0_table
 
 # Find prevalence and standard deviation by age group for smk=1
 smoke1_mean <- smoke1 %>% group_by(age) %>% summarise(Mean = mean(resp))
-smoke1_sd <- smoke1 %>% group_by(age) %>% summarise(SD = sd(resp))
-smoke1_means_SD <- merge(smoke1_mean, smoke1_sd, by = "age")
-smoke1_means_SD <- as.data.frame(smoke1_means_SD)
-smoke1_means_SD <- smoke1_means_SD %>% rename(Age = age)
-smoke1_table <- smoke0_means_SD %>% kable(caption = "Mother = Smoker")
+smoke1_se <- smoke1 %>% group_by(age) %>% summarise(SE = sd(resp) / sqrt(n()))
+smoke1_means_SE <- merge(smoke1_mean, smoke1_se, by = "age")
+smoke1_means_SE <- as.data.frame(smoke1_means_SE)
+smoke1_means_SE <- smoke1_means_SE %>% rename(Age = age)
+smoke1_table <- smoke1_means_SE %>% kable(caption = "Mother = Smoker")
 smoke1_table
 
 # Find the correlation
 cor(smoke$resp, smoke$smk)
+
+# Model
+mod1 <- gee(resp ~ age + as.factor(smk),
+            family = "binomial",
+            data = smoke,
+            corstr = "unstructured")
+summary(mod1)
+
+# Correlation matrix
+kable(mod1$working.correlation)
 ```
      
-#b) Analyze the effect of mother’s smoking on prevalence of respiratory disease as a function of age using a marginal regression model. Is there any evidence for an interaction between smoking and age? How do you interpret this interaction? Experiment with a number of different “working” correlation matrices including, at a minimum, independence, exchangeable and autoregressive (1st order). Which if any of these seems most suitable for use with these data?    
-Under the independence and exchangeable correlation structures, the children whose mother smoked have a 1.4 times greater odds of having respiratory infection compared to children whose mother did not smoke when age and the interaction between age and mother's smoking status are held constant. Under the autoregressive (1st order) correlation structure, children whose mother smoked have a 1.3 times greater odds of having respiratory infection compared to children whose mother did not smoke when age and the interaction between age and mother's smoking status are held constant. There is no evidence for an interaction between smoking and age in any of these models. If there were a significant interaction effect, it would indicate that the effect of mother's smoking status on respiratory disease depends on age. The exchangeable correlation structure seems most suitable for use with this data.   
+# a) Conduct an analysis of the longitudinal dataset that focuses on the relationship between the prevalence of respiratory disease and age within each of the two smoking (mother’s) groups. Examine both the mean and correlation structure. Comment on the difficulties of using the correlation coefficient as a measure of dependence between binary outcome variables. Are there restrictions on the value of the correlation coefficient related to the mean of binary outcomes?       
+The two tables below show the prevalence and standard error of respiratory disease by age in children whose mothers are non-smokers and children whose mothers are smokers. The prevalence is higher in children whose mothers smoked.   
+`r smoke0_table`    
+`r smoke1_table`      
+The matrix below is the correlation matrix for the model.     
+`r kable(mod1$working.correlation)`
+The correlation coefficient between respiratory disease and mother's smoking status is 0.0476. The correlation coefficient between binary variables does not live in the whole range for Pearson's correlation because it is constrained by the means of the variables. 
+
+# b) Analyze the effect of mother’s smoking on prevalence of respiratory disease as a function of age using a marginal regression model. Is there any evidence for an interaction between smoking and age? How do you interpret this interaction? Experiment with a number of different “working” correlation matrices including, at a minimum, independence, exchangeable and autoregressive (1st order). Which if any of these seems most suitable for use with these data?    
+Under the independence and exchangeable correlation structures, the children whose mother smoked have a 1.4 times greater odds of having respiratory infection compared to children whose mother did not smoke when age and the interaction between age and mother's smoking status are held constant. Under the autoregressive (1st order) correlation structure, children whose mother smoked have a 1.3 times greater odds of having respiratory infection compared to children whose mother did not smoke when age and the interaction between age and mother's smoking status are held constant. There is no evidence for an interaction between smoking and age in any of these models. If there were a significant interaction effect, it would be the mean respiratory rate over time for children whose mother smoked. The exchangeable correlation structure seems most suitable for use with this data.   
 ```{r}
 # Create model with independence correlation structure
-mod2 <- geeglm(resp ~ agec + as.factor(smk) + AcXsm,
+mod2 <- geeglm(resp ~ age + as.factor(smk) + AcXsm,
             family = "binomial",
             data = smoke,
             id=smoke$id,
@@ -71,7 +86,7 @@ exp(mod2$coefficients)
 
 ```{r}
 # Create model with exchangeable correlation structure
-mod3 <- geeglm(resp ~ agec + as.factor(smk) + AcXsm,
+mod3 <- geeglm(resp ~ age + as.factor(smk) + AcXsm,
             data = smoke,
             family = "binomial",
             id=id,
@@ -85,7 +100,7 @@ exp(mod2$coefficients)
 
 ```{r}
 # Create model with autoregressive correlation structure
-mod4 <- geeglm(resp ~ agec + as.factor(smk) + AcXsm,
+mod4 <- geeglm(resp ~ age + as.factor(smk) + AcXsm,
             data = smoke,
             family = "binomial",
             id=id,
@@ -94,36 +109,36 @@ summary(mod4)
 
 # Find the odds ratio
 exp(mod4$coefficients)
-exp(mod4$coefficients)
 ```
      
 ```{r}
 # Create model with unstructured correlation structure
-gee(resp ~ agec + as.factor(smk) + AcXsm,
+gee(resp ~ age + as.factor(smk) + AcXsm,
     family = "binomial",
     data = smoke,
     id=smoke$id,
     corstr = "unstructured")
 ```
      
-     
-#c) Estimate a conditional model for the probability of infection. Explicitly state your model and modeling assumptions. Interpret the estimated coefficient for mothers’ smoking status.      
-$logit(Y_{ij})={\beta}^*_0 + {\beta}^*_{1}age + {\beta}^*_{2}smk + b_i$     
+# c) Estimate a conditional model for the probability of infection. Explicitly state your model and modeling assumptions. Interpret the estimated coefficient for mothers’ smoking status.      
+$E[Resp_{ij} | X_{ij}, id_i] = {\beta}^*_0 + {\beta}^*_{1}age_{ij} + {\beta}^*_{2}smk_{ij} + {\beta}^*_{2}agec_{ij}*smk_{ij}$      
+$E[Resp_{ij} | X_{ij}, id_i] = -1.6654 + -0.2170*age_{ij} + 0.4782*smk_{ij} + 0.1046*agec_{ij}*smk_{ij}$    
 The model assumptions are:    
-1. $Y_{ij} | b_i ~ Bin({\pi}^{b}_{ij}, 1)$    
-2. ${n}^{b}_{ij} | b_i = {\beta}^*_0 + {\beta}^*_{1}x_{ij} + b_i$   
-3. $n^b_{ij} = logit({\pi}^b_{ij})$    
-4. $b_i ~ N(0, {\sigma}^2_b$     
-The odds of a child having respiratory disease increase by a factor of 1.5 when the child's mother smoked compared to when the child's mother did not smoke when age is held constant.   
+1. Linearity    
+2. No multicollinearity    
+3. No outliers     
+The odds of a child having respiratory disease increase by a factor of 1.6 when the child's mother smoked compared to when the child's mother did not smoke when age is held constant.   
 ```{r}
 # Create model
-mod5 <- glmer(as.factor(resp) ~ age + as.factor(smk) + (1 | id),
+mod5 <- glmer(as.factor(resp) ~ age + as.factor(smk) + AcXsm + (1 | id),
               family = "binomial", data = smoke)
 summary(mod5)
 
 # Find odds ratio
-exp(0.415)
+exp(0.4782)
+
+smoke %>% group_by(id, smk) %>% summarise(n())
 ```
       
-#d) Compare the estimated coefficients for mothers’ smoking status from the fitted models in (b) and (c). Comment upon the magnitude of the estimates and potential problems in the their interpretations.    
-The estimate in model (c) has a greater magnitude than the estimates in model (b). The marginal models in (b) estimate population odds, while the model in (c) estimates individuals' odds.
+# d) Compare the estimated coefficients for mothers’ smoking status from the fitted models in (b) and (c). Comment upon the magnitude of the estimates and potential problems in the their interpretations.    
+The estimate in model (c) has a greater magnitude than the estimates in model (b). The marginal models in (b) estimate population odds, while the model in (c) estimates individuals' odds. The problem with the marginal model is that if some mother's smoking status changed over the course of the study, those children will be in both populations. The problem with the conditional model is that some children's mothers did not change smoking status over the course of the study so the mother's smoking status variable did not change over time for these children. Additionally, it's unethical to force people to smoke so it's not possible to force people to smoke at one point in the study and force them not to smoke at another point in order to collect data when mother's smoking status has each value for each patient.

@@ -1,0 +1,58 @@
+---
+title: "Longitudinal HW6"
+author: "Mairead Dillon"
+date: '2023-03-27'
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = FALSE)
+# Load libraries
+library(readxl)
+library(tidyverse)
+library(geepack)
+library(gee)
+
+# Import data
+# Import data
+smoke <- read_xls("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW5/SmkRespDis.xls")
+```
+        
+# a) Estimate a transitional model for the probability of infection. Write out the model and state your modeling assumptions. What is the interpretation of the estimated coefficient for mother’s smoking status? Please be explicit. Include interpretations of the estimate, it’s 95% confidence interval, and provide a conclusion (decision) using the p-value.     
+Model: $logit(Y_{ij}) = {\beta}^{**}_0 + {\beta}^{**}_1 t_{ij} + {\alpha} (Y_{i, j-1} - {\beta}^{**}_0 - {\beta}^{**}_1 t_{i, j-1}) + {\mu}_{ij}$    
+Model: $logit(Y_{ij}) = {\beta}^{**}_0 + {\beta}^{**}_1 agec + {\beta}^{**}_2 smk + {\beta}^{**}_3 AcXsm + {\beta}^{**}_4 lag + {\alpha} Y_{i, j-1} + {\mu}_{ij}$
+Model assumptions:     
+1. Markov assumption    
+2. Linearity assumption    
+3. Normality assumption    
+4. Time-invariance assumption    
+5. Stationarity assumption    
+6. Independence assumption     
+      
+The incidence of respiratory infection among those whose mother smoked is 1.3 times greater than the incidence of respiratory infection among those whose mother did not smoke. The confidence interval for the odds ratio is (0.93, 1.7). The p-value for the mother's smoking status variable is 0.006, so we reject the null hypothesis and conclude that there is a significant correlation between mother's smoking status and respiratory infection.    
+     
+```{r}
+# Create lag variable
+smoke <- smoke %>%
+  mutate(lagg = lag(resp))
+
+# Create model
+mod1 <- glm(as.factor(resp) ~ as.factor(agec) + as.factor(smk) + AcXsm + lagg,
+            data = smoke,
+            family = "binomial")
+
+# Model output
+summary(mod1)
+
+# Find odds ratio
+exp(mod1$coefficients)
+
+# Find confidence interval
+exp(confint(mod1))
+```
+        
+# b) Compare the estimated coefficient for mothers’ smoking status from the fitted transitional model to the estimates obtained from the marginal and conditional models obtained in Assignment #5, parts (b) and (c). Please explain the differences among the estimates and possible reasons for the differences, in detail.    
+The estimated coefficient obtained from the fitted transitional model was smaller in magnitude than that obtained from the marginal and conditional models. The estimated coefficient obtained from the conditional model was the largest in magnitude. The transitional model looks at incidence of respiratory infection among those with a mother who smoked compared to the incidence of respiratory infection among those with a mother who did not smoke. The marginal model looks at prevalence of respiratory infection among those mother smoked compared to prevalence of respiratory infection among those whose mother did not smoke. The conditional model looks at probability of respiratory infection for a given child when his/her mother smoked compared to the probability of respiratory infection for the same child when his/her mother did not smoke. The transitional model predicts future outcomes from past outcomes, the marginal model estimates population average effects, and the conditional model estimates subject specific effects. The estimates given by the three models are different because the three models estimate different things.      
+       

@@ -1,0 +1,81 @@
+---
+title: "Simulation"
+author: "Mairead Dillon"
+date: '2023-04-04'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+     
+```{r}
+# Data for Homework 7
+library(readxl)
+HwkPop <- read_excel("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW7/LargePubHlthDataset.xls")
+# We use complete records; 135 incomplete records deleted.
+HwkPop <- HwkPop[complete.cases(HwkPop),]
+attach(HwkPop)
+
+Var <- function(data, Var){get(Var, data)}
+
+Var(HwkPop, c("kcal", "female"))
+
+Var1 <- function(data, variables){
+  data %>% select(all_of(variables))
+  }
+```
+     
+```{r}
+# Get the true "population" outcome mean (Y) difference between groups (X)
+tru_dif <- function(Popdat, variables){
+  Popdat1 <- Popdat %>% select(all_of(variables))
+  test <- t.test(Popdat1[2], Popdat1[1])
+  diff(test$estimate)
+}
+
+tru_dif(HwkPop, c("kcal", "female"))
+
+# Get summaries (e.g., coverage, mean difference) from random samples 
+t_ConfInv <- function(Sampdat, variables, TrueDif){
+  Popdat <- Sampdat %>% select(all_of(variables))
+  test  <- t.test(Popdat[1], Popdat[2], var.equal = FALSE)
+  covg  <- ( test$conf.int[1] <= TrueDif & TrueDif <= test$conf.int[2] )
+  est   <- diff(test$estimate)
+  stats <- c(N = N, Diff = est, True = TrueDif, Covg = covg) 
+  covg
+}
+
+t_ConfInv(HwkPop, c("kcal", "female"), true_diff)
+
+# prec_t will execute a MC simulation BigB times for a given sample size
+prec_t <- function(Popdat, N, BigB, TrueDif){
+  sim  <- replicate(BigB, t_ConfInv(sample_n(Popdat, N), TrueDif))
+  sim 
+}
+
+prec_t(HwkPop, N, BigB, true_diff)
+
+# Number of simulation runs (for each sample size) 
+BigB <- 1000
+# Vary the sample sizes from 60 to 900 by 20
+N    <- 60+20*(1:42)
+SaveEsts <- matrix(data=NA, nrow=length(N), ncol=2)
+#
+# MC simulations over the sample sizes (N) specified. Each one will be
+# executed BigB times (see prec_t function).
+#
+#   Mean summaries are saved in SaveEsts, with sample sizes, N
+#
+
+true_diff <- tru_dif(HwkPop, c("kcal", "female"))
+for (i in 1:length(N)) {
+SaveEsts[i,] <- c(N[i], mean(prec_t(HwkPop, N[i], BigB, true_diff) ) )
+######################## Use apply(sim, 2, mean) to summarize "stats" in t_ConfInv
+######################## not just coverage (covg); use t() on replicate() in prec_t
+}
+
+SaveEsts
+
+```
+

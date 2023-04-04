@@ -1,0 +1,50 @@
+---
+title: "Longitudinal HW7"
+author: "Mairead Dillon"
+date: '2023-04-04'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load libraries
+library(tidyverse)
+library(readxl)
+library(moments)
+
+# Important data
+data <- read_xls("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW7/LargePubHlthDataset.xls")
+```
+     
+        
+# Stroke
+```{r}
+length(na.omit(data$stroke))
+mean(data$stroke, na.rm=TRUE)
+var(data$stroke, na.rm=TRUE)
+skewness(data$stroke, na.rm=TRUE)
+kurtosis(data$stroke, na.rm=TRUE)
+
+length(na.omit(data$kcal[data$agegrp==0]))
+length(na.omit(data$kcal[data$agegrp==1]))
+
+data %>% summarise(sample = length(na.omit(stroke)),
+                   mean = mean(stroke, na.rm=T),
+                   variance = var(stroke, na.rm=T),
+                   skewness = skewness(stroke, na.rm=T),
+                   kurtosis = kurtosis(stroke, na.rm=T))
+
+data %>% group_by() %>% summarise(sample = length(na.omit(stroke)),
+                   mean = mean(stroke, na.rm=T),
+                   variance = var(stroke, na.rm=T),
+                   skewness = skewness(stroke, na.rm=T),
+                   kurtosis = kurtosis(stroke, na.rm=T))
+```
+All:   
+Sample size: 5888    
+Mean: 0.04212    
+Variance: 0.0404     
+Skewness: 4.5592    
+Kurtosis: 21.7859    
+
+        

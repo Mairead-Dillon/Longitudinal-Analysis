@@ -16,29 +16,218 @@ library(moments)
 data <- read_xls("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW7/LargePubHlthDataset.xls")
 ```
      
+# Physical Activity
+```{r}
+# All
+data %>% summarise(sample = length(na.omit(kcal)),
+                   mean = mean(kcal, na.rm=T),
+                   variance = var(kcal, na.rm=T),
+                   skewness = skewness(kcal, na.rm=T),
+                   kurtosis = kurtosis(kcal, na.rm=T))
+
+# By age group
+data %>% group_by(agegrp) %>% 
+  summarise(sample = length(na.omit(kcal)),
+            mean = mean(kcal, na.rm=T),
+            variance = var(kcal, na.rm=T),
+            skewness = skewness(kcal, na.rm=T),
+            kurtosis = kurtosis(kcal, na.rm=T))
+
+# Relative N
+length(na.omit(data$kcal[data$agegrp==0])) / length(na.omit(data$kcal[data$agegrp==1]))
+
+# Relative variance
+var(na.omit(data$kcal[data$agegrp==0])) / var(na.omit(data$kcal[data$agegrp==1]))
+
+# By sex
+data %>% group_by(female) %>% 
+  summarise(sample = length(na.omit(kcal)),
+            mean = mean(kcal, na.rm=T),
+            variance = var(kcal, na.rm=T),
+            skewness = skewness(kcal, na.rm=T),
+            kurtosis = kurtosis(kcal, na.rm=T))
+
+# Relative N
+length(na.omit(data$kcal[data$female==1])) / length(na.omit(data$kcal[data$female==0]))
+
+# Relative variance
+var(na.omit(data$kcal[data$female==1])) / var(na.omit(data$kcal[data$female==0]))
+
+# Histogram
+jpeg("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW7/physical_activity.jpg", quality = 100)
+hist(data$kcal,
+     main = "Physical Activity",
+     xlab = "Physical Activity")
+dev.off()
+```
+     
+# Alcohol Consumption
+```{r}
+# All
+data %>% summarise(sample = length(na.omit(alcoh)),
+                   mean = mean(alcoh, na.rm=T),
+                   variance = var(alcoh, na.rm=T),
+                   skewness = skewness(alcoh, na.rm=T),
+                   kurtosis = kurtosis(alcoh, na.rm=T))
+
+# By age group
+data %>% group_by(agegrp) %>% 
+  summarise(sample = length(na.omit(alcoh)),
+            mean = mean(alcoh, na.rm=T),
+            variance = var(alcoh, na.rm=T),
+            skewness = skewness(alcoh, na.rm=T),
+            kurtosis = kurtosis(alcoh, na.rm=T))
+
+# Relative N
+length(na.omit(data$alcoh[data$agegrp==0])) / length(na.omit(data$alcoh[data$agegrp==1]))
+
+# Relative variance
+var(na.omit(data$alcoh[data$agegrp==0])) / var(na.omit(data$alcoh[data$agegrp==1]))
+
+# By smoking status
+data %>% group_by(cursmk) %>% 
+  summarise(sample = length(na.omit(alcoh)),
+            mean = mean(alcoh, na.rm=T),
+            variance = var(alcoh, na.rm=T),
+            skewness = skewness(alcoh, na.rm=T),
+            kurtosis = kurtosis(alcoh, na.rm=T))
+
+# Relative N
+length(na.omit(data$alcoh[data$cursmk==1])) / length(na.omit(data$alcoh[data$cursmk==0]))
+
+# Relative variance
+var(na.omit(data$alcoh[data$cursmk==1])) / var(na.omit(data$alcoh[data$cursmk==0]))
+
+# Histogram
+jpeg("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW7/alcohol_consumption.jpg", quality = 100)
+hist(data$alcoh,
+     main = "Alcohol Consumption",
+     xlab = "Alcohol Consumption")
+dev.off()
+```
+        
+# Systolic Blood Pressure
+```{r}
+# All
+data %>% summarise(sample = length(na.omit(sysbp)),
+                   mean = mean(sysbp, na.rm=T),
+                   variance = var(sysbp, na.rm=T),
+                   skewness = skewness(sysbp, na.rm=T),
+                   kurtosis = kurtosis(sysbp, na.rm=T))
+
+# By age group
+data %>% group_by(agegrp) %>% 
+  summarise(sample = length(na.omit(sysbp)),
+            mean = mean(sysbp, na.rm=T),
+            variance = var(sysbp, na.rm=T),
+            skewness = skewness(sysbp, na.rm=T),
+            kurtosis = kurtosis(sysbp, na.rm=T))
+
+# Relative N
+length(na.omit(data$sysbp[data$agegrp==0])) / length(na.omit(data$sysbp[data$agegrp==1]))
+
+# Relative variance
+var(na.omit(data$sysbp[data$agegrp==0])) / var(na.omit(data$sysbp[data$agegrp==1]))
+
+# By sex
+data %>% group_by(female) %>% 
+  summarise(sample = length(na.omit(sysbp)),
+            mean = mean(sysbp, na.rm=T),
+            variance = var(sysbp, na.rm=T),
+            skewness = skewness(sysbp, na.rm=T),
+            kurtosis = kurtosis(sysbp, na.rm=T))
+
+# Relative N
+length(na.omit(data$sysbp[data$female==1])) / length(na.omit(data$sysbp[data$female==0]))
+
+# Relative variance
+var(na.omit(data$sysbp[data$female==1])) / var(na.omit(data$sysbp[data$female==0]))
+
+# Histogram
+jpeg("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW7/SBP.jpg", quality = 100)
+hist(data$sysbp,
+     main = "Systolic Blood Pressure",
+     xlab = "Systolic Blood Pressure")
+dev.off()
+```
+      
+# C-Reactive Protein
+```{r}
+# All
+data %>% summarise(sample = length(na.omit(crp)),
+                   mean = mean(crp, na.rm=T),
+                   variance = var(crp, na.rm=T),
+                   median = median(crp, na.rm=T),
+                   skewness = skewness(crp, na.rm=T),
+                   kurtosis = kurtosis(crp, na.rm=T))
+
+# By sex
+data %>% group_by(female) %>%
+  summarise(sample = length(na.omit(crp)),
+            mean = mean(crp, na.rm=T),
+            variance = var(crp, na.rm=T),
+            median = median(crp, na.rm=T),
+            skewness = skewness(crp, na.rm=T),
+            kurtosis = kurtosis(crp, na.rm=T))
+
+# Relative N
+length(na.omit(data$crp[data$female==1])) / length(na.omit(data$crp[data$female==0]))
+
+# Relative variance
+var(na.omit(data$crp[data$female==1])) / var(na.omit(data$crp[data$female==0]))
+
+# Histogram
+jpeg("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW7/CRP.jpg", quality = 100)
+hist(data$crp,
+     main = "C-Reactive Protein",
+     xlab = "C-Reactive Protein")
+dev.off()
+```
+
         
 # Stroke
 ```{r}
-length(na.omit(data$stroke))
-mean(data$stroke, na.rm=TRUE)
-var(data$stroke, na.rm=TRUE)
-skewness(data$stroke, na.rm=TRUE)
-kurtosis(data$stroke, na.rm=TRUE)
-
-length(na.omit(data$kcal[data$agegrp==0]))
-length(na.omit(data$kcal[data$agegrp==1]))
-
+# All
 data %>% summarise(sample = length(na.omit(stroke)),
                    mean = mean(stroke, na.rm=T),
                    variance = var(stroke, na.rm=T),
                    skewness = skewness(stroke, na.rm=T),
                    kurtosis = kurtosis(stroke, na.rm=T))
 
-data %>% group_by() %>% summarise(sample = length(na.omit(stroke)),
-                   mean = mean(stroke, na.rm=T),
-                   variance = var(stroke, na.rm=T),
-                   skewness = skewness(stroke, na.rm=T),
-                   kurtosis = kurtosis(stroke, na.rm=T))
+# By smoking status
+data %>% group_by(cursmk) %>% 
+  summarise(sample = length(na.omit(stroke)),
+            mean = mean(stroke, na.rm=T),
+            variance = var(stroke, na.rm=T),
+            skewness = skewness(stroke, na.rm=T),
+            kurtosis = kurtosis(stroke, na.rm=T))
+
+# Relative N
+length(na.omit(data$stroke[data$cursmk==1])) / length(na.omit(data$stroke[data$cursmk==0]))
+
+# Relative variance
+var(na.omit(data$stroke[data$cursmk==1])) / var(na.omit(data$stroke[data$cursmk==0]))
+
+# By sex
+data %>% group_by(female) %>% 
+  summarise(sample = length(na.omit(stroke)),
+            mean = mean(stroke, na.rm=T),
+            variance = var(stroke, na.rm=T),
+            skewness = skewness(stroke, na.rm=T),
+            kurtosis = kurtosis(stroke, na.rm=T))
+
+# Relative N
+length(na.omit(data$stroke[data$female==1])) / length(na.omit(data$stroke[data$female==0]))
+
+# Relative variance
+var(na.omit(data$stroke[data$female==1])) / var(na.omit(data$stroke[data$female==0]))
+
+# Histogram
+jpeg("/Users/maireaddillon/Documents/Duke/BIOS-718/Longitudinal-Analysis/HW7/stroke.jpg", quality = 100)
+hist(data$stroke,
+     main = "Stroke",
+     xlab = "Stroke")
+dev.off()
 ```
 All:   
 Sample size: 5888    

@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load libraries
 library(tidyverse)
 library(readxl)
+library(broom)
 library(moments)
 
 # Important data
@@ -155,18 +156,16 @@ dev.off()
 ```{r}
 # All
 data %>% summarise(sample = length(na.omit(crp)),
-                   mean = mean(crp, na.rm=T),
-                   variance = var(crp, na.rm=T),
                    median = median(crp, na.rm=T),
+                   iqr = IQR(crp, na.rm=T),
                    skewness = skewness(crp, na.rm=T),
                    kurtosis = kurtosis(crp, na.rm=T))
 
 # By sex
 data %>% group_by(female) %>%
   summarise(sample = length(na.omit(crp)),
-            mean = mean(crp, na.rm=T),
-            variance = var(crp, na.rm=T),
             median = median(crp, na.rm=T),
+            iqr = IQR(crp, na.rm=T),
             skewness = skewness(crp, na.rm=T),
             kurtosis = kurtosis(crp, na.rm=T))
 
@@ -229,11 +228,197 @@ hist(data$stroke,
      xlab = "Stroke")
 dev.off()
 ```
-All:   
-Sample size: 5888    
-Mean: 0.04212    
-Variance: 0.0404     
-Skewness: 4.5592    
-Kurtosis: 21.7859    
+      
+## Simulations    
+```{r}
+# We use complete records; 135 incomplete records deleted.
+HwkPop <- HwkPop[complete.cases(HwkPop),]
+```
+     
+# Physical activity by age group
+```{r}
+# Set seed
+set.seed(100)
+
+# N = 100
+B = 100
+
+## Step 1: Compute population parameter for true difference between means:
+#
+# Population-level mean difference, PopDiff
+PopDiff <-  -diff(t.test(kcal ~ agegrp, data=HwkPop)$estimate )
+
+## Step 2: Generate random samples of size N for your Monte Carlo simulation
+#          Place random samples in a list of data frames (make's life easier):
+
+N <- seq(100, 500, by=50)
+for (i in 1:length(N)) {
+  
+data_list <- map(.x = 1:B, .f = ~ sample_n(HwkPop, N[i]))
+head(data_list[[1]])
+
+## Step: 3: Collect your MC estimates and safe them in tmpout.
+#           In this illustration, We've saved:
+#           dif  = estimated mean difference: mean(Y[X==0]) - mean(Y[X==1])
+#           lcl  = lower 95% conf. inv. estimate
+#           ucl  = upper 95% conf. inv. estimate
+#           cov  = decision of whether the CI contains the true difference
+#           TrueDif = Population mean difference 
+
+tmpout <- NULL
+for(i in 1:B) {
+#  tmpout <- rbind(tmpout, ( prod( t.test( kcal ~  female, data=data_list[[i]])$conf.int - TrueDif) < 0 )  )
+  tst <- t.test(kcal ~ agegrp, data=data_list[[i]])
+  dif <- -diff(tst$estimate)
+  lcl <- tst$conf.int[1]
+  ucl <- tst$conf.int[2]
+  cov <- ( lcl <= PopDiff & PopDiff <= ucl )
+  stat <- c(TrueDif = PopDiff, dif = dif, lcl = lcl, ucl=ucl, Cover = cov ) 
+  tmpout <- rbind(tmpout, stat  )
+}
+head(tmpout)
+print(apply(tmpout, 2, mean))
+
+}
+```
+```{r}
+# Set seed
+set.seed(100)
+
+# N = 100
+B = 10000
+
+## Step 1: Compute population parameter for true difference between means:
+#
+# Population-level mean difference, PopDiff
+PopDiff <-  -diff(t.test(kcal ~ agegrp, data=HwkPop)$estimate )
+
+## Step 2: Generate random samples of size N for your Monte Carlo simulation
+#          Place random samples in a list of data frames (make's life easier):
+
+N <- seq(350, 400, by=10)
+for (i in 1:length(N)) {
+  
+data_list <- map(.x = 1:B, .f = ~ sample_n(HwkPop, N[i]))
+head(data_list[[1]])
+
+## Step: 3: Collect your MC estimates and safe them in tmpout.
+#           In this illustration, We've saved:
+#           dif  = estimated mean difference: mean(Y[X==0]) - mean(Y[X==1])
+#           lcl  = lower 95% conf. inv. estimate
+#           ucl  = upper 95% conf. inv. estimate
+#           cov  = decision of whether the CI contains the true difference
+#           TrueDif = Population mean difference 
+
+tmpout <- NULL
+for(i in 1:B) {
+#  tmpout <- rbind(tmpout, ( prod( t.test( kcal ~  female, data=data_list[[i]])$conf.int - TrueDif) < 0 )  )
+  tst <- t.test(kcal ~ agegrp, data=data_list[[i]])
+  dif <- -diff(tst$estimate)
+  lcl <- tst$conf.int[1]
+  ucl <- tst$conf.int[2]
+  cov <- ( lcl <= PopDiff & PopDiff <= ucl )
+  stat <- c(TrueDif = PopDiff, dif = dif, lcl = lcl, ucl=ucl, Cover = cov ) 
+  tmpout <- rbind(tmpout, stat  )
+}
+head(tmpout)
+print(apply(tmpout, 2, mean))
+
+}
+```
+
+     
+# Physical activity by sex
+```{r}
+# Set seed
+set.seed(100)
+
+# N = 100
+B = 100
+
+## Step 1: Compute population parameter for true difference between means:
+#
+# Population-level mean difference, PopDiff
+PopDiff <-  -diff(t.test(kcal ~ female, data=HwkPop)$estimate )
+
+## Step 2: Generate random samples of size N for your Monte Carlo simulation
+#          Place random samples in a list of data frames (make's life easier):
+
+N <- seq(50, 100, by=10)
+for (i in 1:length(N)) {
+  
+data_list <- map(.x = 1:B, .f = ~ sample_n(HwkPop, N[i]))
+head(data_list[[1]])
+
+## Step: 3: Collect your MC estimates and safe them in tmpout.
+#           In this illustration, We've saved:
+#           dif  = estimated mean difference: mean(Y[X==0]) - mean(Y[X==1])
+#           lcl  = lower 95% conf. inv. estimate
+#           ucl  = upper 95% conf. inv. estimate
+#           cov  = decision of whether the CI contains the true difference
+#           TrueDif = Population mean difference 
+
+tmpout <- NULL
+for(i in 1:B) {
+#  tmpout <- rbind(tmpout, ( prod( t.test( kcal ~  female, data=data_list[[i]])$conf.int - TrueDif) < 0 )  )
+  tst <- t.test( kcal ~  female, data=data_list[[i]])
+  dif <- -diff(tst$estimate)
+  lcl <- tst$conf.int[1]
+  ucl <- tst$conf.int[2]
+  cov <- ( lcl <= PopDiff & PopDiff <= ucl )
+  stat <- c(TrueDif = PopDiff, dif = dif, lcl = lcl, ucl=ucl, Cover = cov ) 
+  tmpout <- rbind(tmpout, stat  )
+}
+head(tmpout)
+print(apply(tmpout, 2, mean))
+
+}
+```
+     
+```{r}
+# Set seed
+set.seed(100)
+
+# N = 100
+B = 10000
+
+## Step 1: Compute population parameter for true difference between means:
+#
+# Population-level mean difference, PopDiff
+PopDiff <-  -diff(t.test(kcal ~ female, data=HwkPop)$estimate )
+
+## Step 2: Generate random samples of size N for your Monte Carlo simulation
+#          Place random samples in a list of data frames (make's life easier):
+
+N <- c(40, 60, 80, 100,)
+for (i in 1:length(N)) {
+  
+data_list <- map(.x = 1:B, .f = ~ sample_n(HwkPop, N[i]))
+head(data_list[[1]])
+
+## Step: 3: Collect your MC estimates and safe them in tmpout.
+#           In this illustration, We've saved:
+#           dif  = estimated mean difference: mean(Y[X==0]) - mean(Y[X==1])
+#           lcl  = lower 95% conf. inv. estimate
+#           ucl  = upper 95% conf. inv. estimate
+#           cov  = decision of whether the CI contains the true difference
+#           TrueDif = Population mean difference 
+
+tmpout <- NULL
+for(i in 1:B) {
+#  tmpout <- rbind(tmpout, ( prod( t.test( kcal ~  female, data=data_list[[i]])$conf.int - TrueDif) < 0 )  )
+  tst <- t.test( kcal ~  female, data=data_list[[i]])
+  dif <- -diff(tst$estimate)
+  lcl <- tst$conf.int[1]
+  ucl <- tst$conf.int[2]
+  cov <- ( lcl <= PopDiff & PopDiff <= ucl )
+  stat <- c(TrueDif = PopDiff, dif = dif, lcl = lcl, ucl=ucl, Cover = cov ) 
+  tmpout <- rbind(tmpout, stat  )
+}
+head(tmpout)
+print(apply(tmpout, 2, mean))
+
+}
+```
 
         
